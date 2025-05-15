@@ -1,5 +1,6 @@
 provider "aws" {
   region = "eu-west-1"
+  profile = "tf-user"
 }
 
 # ---- VPC ----
@@ -53,12 +54,22 @@ resource "aws_security_group" "ec2_sg" {
 
 # ---- EC2 Instance ----
 resource "aws_instance" "wordpress" {
-  ami           = "ami-0c1c30571d2dae5c9" # Amazon Linux 2 (example, check region)
-  instance_type = "t2.micro"
-  subnet_id     = module.vpc.public_subnets[0]
-  security_groups = [aws_security_group.ec2_sg.name]
+  ami                    = "ami-0c1c30571d2dae5c9"
+  instance_type          = "t2.micro"
+  subnet_id              = module.vpc.public_subnets[0]
+  vpc_security_group_ids = [aws_security_group.ec2_sg.id]
 
-  user_data = file("wordpress-setup.sh") # bash script to install WordPress
+  user_data = templatefile("${path.module}/wordpress-setup.sh", {
+    WORDPRESS_DB_NAME      = "wordpressdb"
+    WORDPRESS_DB_USER      = "admin"
+    WORDPRESS_DB_PASSWORD  = "password123!"
+    WORDPRESS_DB_HOST      = aws_db_instance.mysql.address
+    WORDPRESS_REDIS_HOST   = aws_elasticache_cluster.redis.cache_nodes[0].address
+    WORDPRESS_REDIS_PORT   = "6379"
+    WORDPRESS_ADMIN_USER   = "admin"
+    WORDPRESS_ADMIN_PASS   = "admin123"
+    WORDPRESS_ADMIN_EMAIL  = "test@example.com"
+  })
 
   tags = {
     Name = "wordpress-instance"
@@ -67,11 +78,10 @@ resource "aws_instance" "wordpress" {
 
 # ---- RDS MySQL ----
 resource "aws_db_instance" "mysql" {
-  allocated_storage    = 20
+  db_name              = "wordpressdb"  
   engine               = "mysql"
-  engine_version       = "8.0"
   instance_class       = "db.t3.micro"
-  name                 = "wordpressdb"
+  allocated_storage    = 20
   username             = "admin"
   password             = "password123!"
   parameter_group_name = "default.mysql8.0"
@@ -80,6 +90,7 @@ resource "aws_db_instance" "mysql" {
   vpc_security_group_ids = [aws_security_group.ec2_sg.id]
   db_subnet_group_name = module.vpc.database_subnet_group
 }
+
 
 # ---- ElastiCache Redis ----
 resource "aws_elasticache_subnet_group" "redis_subnet_group" {
@@ -98,18 +109,13 @@ resource "aws_elasticache_cluster" "redis" {
 }
 
 # ---- IAM User for Reviewer ----
-resource "aws_iam_user" "review_user" {
+resource "aws_iam_user" "review_user" { 
   name = "reviewer"
 }
 
-resource "aws_iam_user_login_profile" "review_login" {
-  user    = aws_iam_user.review_user.name
-  pgp_key = "keybase:yourkeybaseuser" # or use a dummy for local testing
-}
-
 resource "aws_iam_policy" "limited_read" {
-  name = "limited-read-only"
-  path = "/"
+  name        = "limited-read-only"
+  path        = "/"
   description = "Limited read-only access for test reviewer"
   policy = jsonencode({
     Version = "2012-10-17",
@@ -137,19 +143,24 @@ resource "aws_iam_user_policy_attachment" "attach_review_policy" {
   policy_arn = aws_iam_policy.limited_read.arn
 }
 
-# ---- Output Credentials ----
-output "reviewer_login" {
-  value = "https://${data.aws_caller_identity.current.account_id}.signin.aws.amazon.com/console"
+resource "aws_iam_access_key" "review_user_key" {
+  user = aws_iam_user.review_user.name
 }
 
-output "reviewer_username" {
+output "reviewer_iam_username" {
   value = aws_iam_user.review_user.name
 }
 
-output "encrypted_password" {
-  value = aws_iam_user_login_profile.review_login.encrypted_password
+output "reviewer_iam_access_key_id" {
+  value = aws_iam_access_key.review_user_key.id
+}
+
+output "reviewer_iam_secret_access_key" {
+  value     = aws_iam_access_key.review_user_key.secret
   sensitive = true
 }
 
-data "aws_caller_identity" "current" {}
-
+output "wordpress_public_ip" {
+  description = "Public IP of the WordPress EC2 instance"
+  value       = aws_instance.wordpress.public_ip
+}

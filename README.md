@@ -2,8 +2,6 @@
 AWS project from abz-agency
 # DevOps Test Assignment – ABZ Agency
 
-# DevOps Test Assignment – ABZ Agency
-
 This project sets up a WordPress stack on AWS using Terraform.
 
 ## 🔧 Infrastructure Components
@@ -55,7 +53,10 @@ Terraform will output:
   - rds:Describe*
   - elasticache:Describe*
   - ec2:DescribeVpcs, Subnets, and SecurityGroups
-- AWS credentials are shared securely (not via email plaintext).
+- AWS IAM User Credentials:
+Username: reviewer
+Access Key ID: <output from Terraform>
+Secret Access Key: <output from Terraform>
 
 ## 📂 Project Structure
 
@@ -74,8 +75,6 @@ I spent approximately 30 hours on this assignment.
 ## ⚠️ Challenges Faced
 
 Wordpress :)
-
----
 
 Thanks for the opportunity!
 
