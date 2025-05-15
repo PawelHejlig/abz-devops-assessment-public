@@ -164,3 +164,19 @@ output "wordpress_public_ip" {
   description = "Public IP of the WordPress EC2 instance"
   value       = aws_instance.wordpress.public_ip
 }
+
+output "wordpress_admin_username" {
+  value       = var.wordpress_admin_user
+  description = "Username for WordPress admin login"
+}
+
+output "wordpress_admin_password" {
+  value       = var.wordpress_admin_password
+  description = "Password for WordPress admin login"
+  sensitive   = true
+}
+
+output "wordpress_login_url" {
+  value       = "http://${aws_instance.wordpress.public_ip}/wp-login.php"
+  description = "Login URL for WordPress site"
+}
