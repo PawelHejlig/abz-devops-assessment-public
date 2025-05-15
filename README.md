@@ -16,7 +16,7 @@ This project sets up a WordPress stack on AWS using Terraform.
 
 1. Clone the Repository
 
-   git clone https://github.com/PawelHejlig/abz-devops-assessment
+   git clone https://github.com/PawelHejlig/abz-devops-assessment-public
 
 2. Configure AWS Access
 
@@ -30,13 +30,11 @@ This project sets up a WordPress stack on AWS using Terraform.
 
 Terraform will output:
 - WordPress EC2 instance public IP (access via browser)
-- IAM reviewer user login link and username
-- Encrypted password (optional; decrypt if PGP used)
+- IAM reviewer and WP read-only users login link and creds
 
-## 📄 WordPress Admin Access
+## 📄 WordPress Access
 
-- A read-only WordPress admin user will be created manually.
-- The credentials will be shared separately (not committed to GitHub).
+- With credentials read-only user
 
 ## 🛠️ Configuration Notes
 
@@ -70,7 +68,7 @@ Secret Access Key: <output from Terraform>
 
 ## ⏱ Time Spent
 
-I spent approximately 30 hours on this assignment.
+I spent approximately 8 hours on this assignment.
 
 ## ⚠️ Challenges Faced
 
