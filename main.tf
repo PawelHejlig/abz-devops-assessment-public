@@ -165,14 +165,14 @@ output "wordpress_public_ip" {
   value       = aws_instance.wordpress.public_ip
 }
 
-output "wordpress_admin_username" {
-  value       = var.wordpress_admin_user
-  description = "Username for WordPress admin login"
+output "wordpress_readonly_user" {
+  value       = "reviewer"
+  description = "Read-only WordPress user"
 }
 
-output "wordpress_admin_password" {
-  value       = var.wordpress_admin_password
-  description = "Password for WordPress admin login"
+output "wordpress_readonly_password" {
+  value       = "readonly123"
+  description = "Password for the read-only WordPress user"
   sensitive   = true
 }
 
