@@ -24,6 +24,14 @@ module "vpc" {
   }
 }
 
+resource "aws_db_subnet_group" "rds_subnet_group" {
+  name       = "rds-subnet-group"
+  subnet_ids = module.vpc.private_subnets
+  tags = {
+    Name = "rds-subnet-group"
+  }
+}
+
 # ---- Security Group for EC2 ----
 resource "aws_security_group" "ec2_sg" {
   name        = "ec2_sg"
@@ -31,6 +39,13 @@ resource "aws_security_group" "ec2_sg" {
   vpc_id      = module.vpc.vpc_id
 
   ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"] # SSH
+  }
+
+    ingress {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
@@ -54,9 +69,10 @@ resource "aws_security_group" "ec2_sg" {
 
 # ---- EC2 Instance ----
 resource "aws_instance" "wordpress" {
-  ami                    = "ami-0c1c30571d2dae5c9"
+  ami                    = "ami-0953476d60561c955"
   instance_type          = "t2.micro"
   subnet_id              = module.vpc.public_subnets[0]
+  associate_public_ip_address = true
   vpc_security_group_ids = [aws_security_group.ec2_sg.id]
 
   user_data = templatefile("${path.module}/wordpress-setup.sh", {
@@ -78,7 +94,7 @@ resource "aws_instance" "wordpress" {
 
 # ---- RDS MySQL ----
 resource "aws_db_instance" "mysql" {
-  db_name              = "wordpressdb"  
+  db_name              = "wordpressdb"
   engine               = "mysql"
   instance_class       = "db.t3.micro"
   allocated_storage    = 20
@@ -87,10 +103,15 @@ resource "aws_db_instance" "mysql" {
   parameter_group_name = "default.mysql8.0"
   publicly_accessible  = false
   skip_final_snapshot  = true
-  vpc_security_group_ids = [aws_security_group.ec2_sg.id]
-  db_subnet_group_name = module.vpc.database_subnet_group
-}
 
+  vpc_security_group_ids = [aws_security_group.rds_sg.id]
+  db_subnet_group_name   = aws_db_subnet_group.rds_subnet_group.name
+  
+  tags = {
+    Name = "wordpress-mysql"
+    Environment = "test"
+  }
+}
 
 # ---- ElastiCache Redis ----
 resource "aws_elasticache_subnet_group" "redis_subnet_group" {
@@ -105,7 +126,12 @@ resource "aws_elasticache_cluster" "redis" {
   num_cache_nodes      = 1
   parameter_group_name = "default.redis7"
   subnet_group_name    = aws_elasticache_subnet_group.redis_subnet_group.name
-  security_group_ids   = [aws_security_group.ec2_sg.id]
+  security_group_ids   = [aws_security_group.redis_sg.id]
+  
+  tags = {
+    Name = "wordpress-redis"
+    Environment = "test"
+  }
 }
 
 # ---- IAM User for Reviewer ----
@@ -173,7 +199,6 @@ output "wordpress_readonly_user" {
 output "wordpress_readonly_password" {
   value       = "readonly123"
   description = "Password for the read-only WordPress user"
-  sensitive   = true
 }
 
 output "wordpress_login_url" {
