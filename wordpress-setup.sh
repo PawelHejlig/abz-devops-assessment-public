@@ -72,6 +72,10 @@ done
 
 wp user create "$REVIEWER_USER" "$REVIEWER_EMAIL" --role=editor --user_pass="$REVIEWER_PASS" --allow-root
 
+wp plugin install redis-cache --activate --allow-root
+
+wp redis enable --allow-root
+
 # Strip write capabilities to make it read-only
 wp cap remove "$REVIEWER_USER" \
   edit_posts publish_posts delete_posts upload_files delete_pages delete_others_posts \
