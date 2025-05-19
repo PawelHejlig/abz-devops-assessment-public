@@ -35,7 +35,7 @@ resource "aws_db_subnet_group" "rds_subnet_group" {
 # ---- Security Group for EC2 ----
 resource "aws_security_group" "ec2_sg" {
   name        = "ec2_sg"
-  description = "Allow HTTP/SSH"
+  description = "Allow HTTP/SSH from internet"
   vpc_id      = module.vpc.vpc_id
 
   ingress {
@@ -43,13 +43,7 @@ resource "aws_security_group" "ec2_sg" {
     to_port     = 22
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"] # SSH
-  }
-
-    ingress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"] # SSH
+    description = "SSH from anywhere (consider restricting to specific IPs)"
   }
 
   ingress {
@@ -57,6 +51,7 @@ resource "aws_security_group" "ec2_sg" {
     to_port     = 80
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"] # HTTP
+    description = "HTTP from anywhere"
   }
 
   egress {
@@ -64,16 +59,94 @@ resource "aws_security_group" "ec2_sg" {
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
+    description = "Allow all outbound traffic"
+  }
+  
+  tags = {
+    Name = "ec2-security-group"
+    Environment = "test"
+  }
+}
+
+# ---- Security Group for RDS ----
+resource "aws_security_group" "rds_sg" {
+  name        = "rds_sg"
+  description = "Allow MySQL access from EC2"
+  vpc_id      = module.vpc.vpc_id
+
+  ingress {
+    from_port       = 3306
+    to_port         = 3306
+    protocol        = "tcp"
+    security_groups = [aws_security_group.ec2_sg.id]
+    description     = "MySQL from EC2 instances"
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+    description = "Allow all outbound traffic"
+  }
+  
+  tags = {
+    Name = "rds-security-group"
+    Environment = "test"
+  }
+}
+
+# ---- Security Group for Redis ----
+resource "aws_security_group" "redis_sg" {
+  name        = "redis_sg"
+  description = "Allow Redis access from EC2"
+  vpc_id      = module.vpc.vpc_id
+
+  ingress {
+    from_port       = 6379
+    to_port         = 6379
+    protocol        = "tcp"
+    security_groups = [aws_security_group.ec2_sg.id]
+    description     = "Redis from EC2 instances"
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+    description = "Allow all outbound traffic"
+  }
+  
+  tags = {
+    Name = "redis-security-group"
+    Environment = "test"
   }
 }
 
 # ---- EC2 Instance ----
+data "aws_ami" "amazon_linux_2" {
+  most_recent = true
+  owners      = ["amazon"]
+
+  filter {
+    name   = "name"
+    values = ["amzn2-ami-hvm-*-x86_64-gp2"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+}
+
 resource "aws_instance" "wordpress" {
-  ami                    = "ami-0953476d60561c955"
-  instance_type          = "t2.micro"
-  subnet_id              = module.vpc.public_subnets[0]
+  ami                         = data.aws_ami.amazon_linux_2.id
+  instance_type               = "t2.micro"
+  subnet_id                   = module.vpc.public_subnets[0]
   associate_public_ip_address = true
-  vpc_security_group_ids = [aws_security_group.ec2_sg.id]
+  vpc_security_group_ids      = [aws_security_group.ec2_sg.id]
+  #key_name                    = "your-key-pair-name" 
 
   user_data = templatefile("${path.module}/wordpress-setup.sh", {
     WORDPRESS_DB_NAME      = "wordpressdb"
