@@ -68,6 +68,7 @@ require_once ABSPATH . 'wp-settings.php';
 EOF
 
 # Set strict permissions for wp-config.php
+sudo chown apache:apache /var/www/html/wp-config.php
 sudo chmod 640 /var/www/html/wp-config.php
 
 # Wait for MySQL to be available
