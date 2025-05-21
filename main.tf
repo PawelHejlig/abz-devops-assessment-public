@@ -215,7 +215,7 @@ resource "aws_iam_user" "review_user" {
 resource "aws_iam_user_login_profile" "review_user_console" {
   user                    = aws_iam_user.review_user.name
   #password                = "Readonly123!"           
-  password_reset_required = true                
+  password_reset_required = false                
 }
 
 resource "aws_iam_policy" "limited_read" {
