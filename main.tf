@@ -212,6 +212,12 @@ resource "aws_iam_user" "review_user" {
   name = "reviewer"
 }
 
+resource "aws_iam_user_login_profile" "review_user_console" {
+  user                    = aws_iam_user.review_user.name
+  #password                = "Readonly123!"           
+  password_reset_required = true                
+}
+
 resource "aws_iam_policy" "limited_read" {
   name        = "limited-read-only"
   path        = "/"
@@ -246,18 +252,19 @@ resource "aws_iam_access_key" "review_user_key" {
   user = aws_iam_user.review_user.name
 }
 
-output "reviewer_iam_username" {
-  value = aws_iam_user.review_user.name
-}
+data "aws_caller_identity" "current" {}
+# output "reviewer_iam_username" {
+#   value = aws_iam_user.review_user.name
+# }
 
-output "reviewer_iam_access_key_id" {
-  value = aws_iam_access_key.review_user_key.id
-}
+# output "reviewer_iam_access_key_id" {
+#   value = aws_iam_access_key.review_user_key.id
+# }
 
-output "reviewer_iam_secret_access_key" {
-  value     = aws_iam_access_key.review_user_key.secret
-  sensitive = true
-}
+# output "reviewer_iam_secret_access_key" {
+#   value     = aws_iam_access_key.review_user_key.secret
+#   sensitive = true
+# }
 
 output "wordpress_public_ip" {
   description = "Public IP of the WordPress EC2 instance"
@@ -277,4 +284,26 @@ output "wordpress_readonly_password" {
 output "wordpress_login_url" {
   value       = "http://${aws_instance.wordpress.public_ip}/wp-login.php"
   description = "Login URL for WordPress site"
+}
+
+output "reviewer_console_url" {
+  value = "https://${data.aws_caller_identity.current.account_id}.signin.aws.amazon.com/console"
+}
+
+output "reviewer_iam_username" {
+  value = aws_iam_user.review_user.name
+}
+
+output "reviewer_iam_console_password" {
+  value     = aws_iam_user_login_profile.review_user_console.password
+  sensitive = true
+}
+
+output "reviewer_iam_access_key_id" {
+  value = aws_iam_access_key.review_user_key.id
+}
+
+output "reviewer_iam_secret_access_key" {
+  value     = aws_iam_access_key.review_user_key.secret
+  sensitive = true
 }
