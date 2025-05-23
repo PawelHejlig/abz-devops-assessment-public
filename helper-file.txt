@@ -1,0 +1,11 @@
+debug commands:
+
+which wp
+
+sudo cat /var/www/html/wp-config.php
+
+sudo tail -50 /var/log/httpd/error_log
+
+sudo wp config get DB_HOST --allow-root
+
+terraform output reviewer_iam_secret_access_key
